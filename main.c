@@ -11,7 +11,10 @@
 #define MAX_OUTPUT 3
 #define LEARNING_DATA 210
 #define LEARNING_RATE 0.5
+#define EPOCH_NUMBER 5
 #define MAX_TESTCASE 20
+
+
 #define max(x,y) (x) > (y) ? (x) : (y)
 
 double input[LEARNING_DATA][MAX_INPUT];
@@ -120,30 +123,33 @@ void Update_Weight(FILE* Wh2_out, FILE* Wh1_h2, FILE* Win_h1)
     {
         for(int j = 0; j < MAX_OUTPUT; j++)
         {
-            fprintf(Wh2_out, "%f\n",Whidden2_output[i][j]);
+            fprintf(Wh2_out, "%f ",Whidden2_output[i][j]);
             Whidden2_output[i][j] = new_Whidden2_output[i][j];
         }
     }
+    fprintf(Wh2_out, "\n");
 
     // Weight hidden1 to hidden2
     for (int i = 0; i < MAX_HIDDEN_1; i++)
     {
         for(int j = 0; j < MAX_HIDDEN_2; j++)
         {
-            fprintf(Wh1_h2, "%f\n",Whidden1_hidden2[i][j]);
+            fprintf(Wh1_h2, "%f ",Whidden1_hidden2[i][j]);
             Whidden1_hidden2[i][j] = new_Whidden1_hidden2[i][j];
         }
     }
+    fprintf(Wh1_h2, "\n");
 
     // Weight input to hidden1
     for (int i = 0; i < MAX_INPUT; i++)
     {
         for(int j = 0; j < MAX_HIDDEN_1; j++)
         {
-            fprintf(Win_h1, "%f\n",Winput_hidden1[i][j]);
+            fprintf(Win_h1, "%f ",Winput_hidden1[i][j]);
             Winput_hidden1[i][j] = new_Winput_hidden1[i][j];
         }
     }
+    fprintf(Win_h1, "\n");
 }
 
 void Back_Propagation(double _input[], double _target[])
@@ -299,7 +305,7 @@ int main()
         fprintf(dataset, "%f %f %f\n", input[i][0],input[i][1],input[i][2]);
     }
 
-    for(int k = 0; k < 5; k++)
+    for(int k = 0; k < EPOCH_NUMBER; k++)
     {
         for (int i = 0; i < LEARNING_DATA; i++)
         {
