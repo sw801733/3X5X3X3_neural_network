@@ -1,54 +1,56 @@
-//#define _CRT_SECURE_NO_WARNINGS 
+#define _CRT_SECURE_NO_WARNINGS 
+#define _USE_MATH_DEFINES
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <math.h>
 
 #define MAX_INPUT 3
 #define MAX_HIDDEN_1 5
 #define MAX_HIDDEN_2 3
 #define MAX_OUTPUT 3
-#define LEARNING_DATA 200
+#define LEARNING_DATA 210
+#define LEARNING_RATE 0.5
+#define MAX_TESTCASE 20
+#define max(x,y) (x) > (y) ? (x) : (y)
 
+double input[LEARNING_DATA][MAX_INPUT];
+double target[LEARNING_DATA][MAX_OUTPUT];
+double output[LEARNING_DATA][MAX_OUTPUT];
+double total_error[LEARNING_DATA] = {0,};
 
-float input[LEARNING_DATA][MAX_INPUT];
-float target[LEARNING_DATA][MAX_OUTPUT];
-float output[LEARNING_DATA][MAX_OUTPUT];
-float total_error[LEARNING_DATA] = {0,};
+double Xhidden_1[MAX_HIDDEN_1] = {0,}; 
+double Ohidden_1[MAX_HIDDEN_1] = {0,};
 
-float Xhidden_1[MAX_HIDDEN_1] = {0,}; 
-float Ohidden_1[MAX_HIDDEN_1] = {0,};
+double Xhidden_2[MAX_HIDDEN_2] = {0,}; 
+double Ohidden_2[MAX_HIDDEN_2] = {0,}; 
 
-float Xhidden_2[MAX_HIDDEN_2] = {0,}; 
-float Ohidden_2[MAX_HIDDEN_2] = {0,}; 
+double Xoutput[MAX_OUTPUT] = {0,}; 
+double Ooutput[MAX_OUTPUT] = {0,}; 
 
-float Xoutput[MAX_OUTPUT] = {0,}; 
-float Ooutput[MAX_OUTPUT] = {0,}; 
-
-float Winput_hidden1[MAX_INPUT][MAX_HIDDEN_1] = {{0.3, 0.2, 0.1, 0.5, 0.7},
+double Winput_hidden1[MAX_INPUT][MAX_HIDDEN_1] = {{0.3, 0.2, 0.1, 0.5, 0.7},
                                                  {0.1, 0.9, 0.3, 0.4, 0.5},
                                                  {0.4, 0.5, 0.1, 0.6, 0.8}};
 
-float Whidden1_hidden2[MAX_HIDDEN_1][MAX_HIDDEN_2] = {{0.7, 0.2, 0.3},
+double Whidden1_hidden2[MAX_HIDDEN_1][MAX_HIDDEN_2] = {{0.7, 0.2, 0.3},
                                                       {0.3, 0.8, 0.4},
                                                       {0.9, 0.1, 0.6},
                                                       {0.4, 0.5, 0.2},
                                                       {0.5, 0.3, 0.9}};
 
-float Whidden2_output[MAX_HIDDEN_2][MAX_OUTPUT] = {{0.2, 0.1, 0.7},
+double Whidden2_output[MAX_HIDDEN_2][MAX_OUTPUT] = {{0.2, 0.1, 0.7},
                                                    {0.3, 0.5, 0.4},
                                                    {0.9, 0.5, 0.2}};
 
-float new_Winput_hidden1[MAX_INPUT][MAX_HIDDEN_1];
-float new_Whidden1_hidden2[MAX_HIDDEN_1][MAX_HIDDEN_2];
-float new_Whidden2_output[MAX_HIDDEN_2][MAX_OUTPUT];
+double new_Winput_hidden1[MAX_INPUT][MAX_HIDDEN_1];
+double new_Whidden1_hidden2[MAX_HIDDEN_1][MAX_HIDDEN_2];
+double new_Whidden2_output[MAX_HIDDEN_2][MAX_OUTPUT];
 
 // a = (O - target) * O * (1 - O)
-float a_Ooutput[MAX_OUTPUT] = {0,};
-float a_Ohidden_2[MAX_HIDDEN_2] = {0,};
-float a_Ohidden_1[MAX_HIDDEN_1] = {0,};
+double a_Ooutput[MAX_OUTPUT] = {0,};
+double a_Ohidden_2[MAX_HIDDEN_2] = {0,};
+double a_Ohidden_1[MAX_HIDDEN_1] = {0,};
 
-// Learning rate
-float alpha = 0.3;
 
 void init_layer()
 {
@@ -76,9 +78,8 @@ void init_layer()
     }
 }
 
-void Forward_Propagation(int _idx,float _input[])
+void Forward_Propagation(int _idx,double _input[])
 {
-    //printf("%f \n", _input[0]);
     // input to hidden_1
     for(int i = 0; i < MAX_HIDDEN_1; i++)
     {
@@ -86,7 +87,6 @@ void Forward_Propagation(int _idx,float _input[])
         {
             Xhidden_1[i] += _input[j] * Winput_hidden1[j][i]; 
         }
-
         Ohidden_1[i] = 1 / (1 + exp(-Xhidden_1[i]));
     }
 
@@ -112,37 +112,41 @@ void Forward_Propagation(int _idx,float _input[])
     }
 }
 
-void Update_Weight()
+void Update_Weight(FILE* Wh2_out, FILE* Wh1_h2, FILE* Win_h1)
 {
+    
+    // Weight hidden2 to output
     for (int i = 0; i < MAX_HIDDEN_2; i++)
     {
         for(int j = 0; j < MAX_OUTPUT; j++)
         {
-
+            fprintf(Wh2_out, "%f\n",Whidden2_output[i][j]);
             Whidden2_output[i][j] = new_Whidden2_output[i][j];
         }
     }
 
+    // Weight hidden1 to hidden2
     for (int i = 0; i < MAX_HIDDEN_1; i++)
     {
         for(int j = 0; j < MAX_HIDDEN_2; j++)
         {
+            fprintf(Wh1_h2, "%f\n",Whidden1_hidden2[i][j]);
             Whidden1_hidden2[i][j] = new_Whidden1_hidden2[i][j];
-
         }
     }
 
+    // Weight input to hidden1
     for (int i = 0; i < MAX_INPUT; i++)
     {
         for(int j = 0; j < MAX_HIDDEN_1; j++)
         {
+            fprintf(Win_h1, "%f\n",Winput_hidden1[i][j]);
             Winput_hidden1[i][j] = new_Winput_hidden1[i][j];
-
         }
     }
 }
 
-void Back_Propagation(float _input[], float _target[])
+void Back_Propagation(double _input[], double _target[])
 {
     // output to hidden_2
     // a_Ooutput[i] = (Ooutput[i] - target[i]) * Oouput[i] * (1 - Ooutput[i])
@@ -151,7 +155,7 @@ void Back_Propagation(float _input[], float _target[])
         for(int j = 0; j < MAX_OUTPUT; j++)
         {
             a_Ooutput[j] = (Ooutput[j] - _target[j]) * Ooutput[j] * (1 - Ooutput[j]); 
-            new_Whidden2_output[i][j] = Whidden2_output[i][j] - alpha * a_Ooutput[j] * Ohidden_2[i];
+            new_Whidden2_output[i][j] = Whidden2_output[i][j] - LEARNING_RATE * a_Ooutput[j] * Ohidden_2[i];
         }
         
     }
@@ -162,13 +166,13 @@ void Back_Propagation(float _input[], float _target[])
     {
         for(int j = 0; j < MAX_HIDDEN_2; j++)
         {
-            float temp = 0;
+            double temp = 0;
             for(int k = 0; k < MAX_OUTPUT; k++)
             {
                 temp += a_Ooutput[k] * Whidden2_output[j][k];
             }
             a_Ohidden_2[j] = temp * Ohidden_2[j] * (1 - Ohidden_2[j]);
-            new_Whidden1_hidden2[i][j] = Whidden1_hidden2[i][j] - alpha * a_Ohidden_2[j] * Ohidden_1[i];
+            new_Whidden1_hidden2[i][j] = Whidden1_hidden2[i][j] - LEARNING_RATE * a_Ohidden_2[j] * Ohidden_1[i];
         }
     }
 
@@ -178,63 +182,124 @@ void Back_Propagation(float _input[], float _target[])
     {
         for(int j = 0; j < MAX_HIDDEN_1; j++)
         {
-            float temp = 0;
+            double temp = 0;
             for(int k = 0; k < MAX_HIDDEN_2; k++)
             {
                 temp += a_Ohidden_2[k] * Whidden1_hidden2[j][k];
             }
             a_Ohidden_1[j] = temp * Ohidden_1[j] * (1 - Ohidden_1[j]);
-            new_Winput_hidden1[i][j] = Winput_hidden1[i][j] - alpha * a_Ohidden_1[j] * _input[i];
+            new_Winput_hidden1[i][j] = Winput_hidden1[i][j] - LEARNING_RATE * a_Ohidden_1[j] * _input[i];
         }
     }
-    Update_Weight();
+
 }
 
-void Cal_Total_Error(int _idx, float _target[][MAX_OUTPUT] ,float _output[][MAX_OUTPUT])
+void Cal_Total_Error(int _idx, double _target[][MAX_OUTPUT] ,double _output[][MAX_OUTPUT])
 {
     for(int i = 0; i < MAX_OUTPUT; i++)
         total_error[_idx] += (_target[_idx][i] - _output[_idx][i]) * (_target[_idx][i] - _output[_idx][i]) / 2;
 }
 
+
+double* make_dataset(double _target)
+{
+    
+    double x, y, z, r;
+    double origin = 1; // 원점
+    static double _dataset[4];
+    double x_range, y_range, z_range;
+
+    // x y 가 같아야 함
+    while(1)
+    {
+        if (_target == 1.0)
+        {
+            // x : 1 ~ 2 | y : 1 ~ 2 | z : 0 ~ 1
+            x_range = (rand() / (double)RAND_MAX);     // 0 ~ 1
+            y_range = (rand() / (double)RAND_MAX);     // 0 ~ 1
+            z_range = (rand() / (double)RAND_MAX);     // 0 ~ 1
+            r = 1;
+        }
+        else if (_target == 2.0)
+        {
+            // x : 1 ~ 1.5 | y : 0.5 ~ 1 | z : 1.5 ~ 2.5
+            x_range = (rand() / (double)RAND_MAX) / 2;   // 0 ~ 0.5
+            y_range = -(rand() / (double)RAND_MAX) / 2;  // 0 ~ 0.5
+            z_range = 1.5 + (rand() / (double)RAND_MAX);   // 1 ~ 2
+            r = 0.5;
+        }
+        else if (_target == 3.0)
+        {
+            // x : 0.2 ~ 1 | y : 1 ~ 1.8 | z : 3 ~ 4
+            x_range = -(rand() / (double)RAND_MAX) * (0.8);     // -1 ~ 0 
+            y_range = (rand() / (double)RAND_MAX) * (0.8);      // 0 ~ 1
+            z_range = 3 + (rand() / (double)RAND_MAX);  // 2.0 ~ 3.0
+            r = 0.8;
+        }
+
+        x = origin + x_range;
+        y = origin + y_range;
+        z = z_range;
+
+        // 부채꼴 반지름과 (x,y) 거리
+        if (((x - origin) * (x - origin)) + ((y - origin) * (y - origin)) <= (r * r))
+        {
+            _dataset[0] = x;
+            _dataset[1] = y;
+            _dataset[2] = z;
+            _dataset[3] = _target;
+
+            break;
+        }
+    }
+    return _dataset;
+
+}
+
 int main()
 {   
-    FILE* fp = fopen("error.txt", "w");
-    float x,y,z;
-    float a,b,c;
-    a = 0.5;
-    b = 0.0;
-    c = 0.0;
+    FILE* error_txt = fopen("error.txt", "w");
+    FILE* testcase_xyz = fopen("testcase_xyz.txt", "w");
+    FILE* testcase_output = fopen("testcase_output.txt", "w");
+    FILE* dataset = fopen("dataset.txt", "w");
+
+    FILE* Wh2_out = fopen("Wh2_out.txt", "w");
+    FILE* Wh1_h2 = fopen("Wh1_h2.txt", "w");
+    FILE* Win_h1 = fopen("Win_h1.txt", "w");
+
+    double _target = 1.0;
     for(int i = 0; i < LEARNING_DATA; i++)
     {
-        // if (i > 70)
-        // {
-        //     a = 0.0;
-        //     b = 0.5;
-        //     c = 0.0;
-        // }
+        double* temp = make_dataset(_target);
+        input[i][0] = temp[0];
+        input[i][1] = temp[1];
+        input[i][2] = temp[2];
         
-        // if (i > 140)
-        // {
-        //     a = 0.0;
-        //     b = 0.0;
-        //     c = 0.5;
-        // }
-
-        // x = a + (rand() / (float) RAND_MAX/2);
-        // printf("%f \n", x);
-        // y = b + (rand() / (float) RAND_MAX/2);
-        // z = c + (rand() / (float) RAND_MAX/2);
-        // input[i][0] = x;
-        // input[i][1] = y;
-        // input[i][2] = z;
-        // target[i][0] = a * 2;
-        // target[i][1] = b * 2;
-        // target[i][2] = c * 2;
-        scanf("%f %f %f %f %f %f", &input[i][0], &input[i][1], &input[i][2], &target[i][0], &target[i][1], &target[i][2]);
-        
+        if (temp[3] == 1.0)
+        {
+            target[i][0] = 1;
+            target[i][1] = 0;
+            target[i][2] = 0;
+            _target = 2.0;
+        }
+        if (temp[3] == 2.0)
+        {
+            target[i][0] = 0;
+            target[i][1] = 1;
+            target[i][2] = 0;
+            _target = 3.0;
+        }
+        if (temp[3] == 3.0)
+        {
+            target[i][0] = 0;
+            target[i][1] = 0;
+            target[i][2] = 1;
+            _target = 1.0;
+        }
+        fprintf(dataset, "%f %f %f\n", input[i][0],input[i][1],input[i][2]);
     }
-    
-    for(int k = 0; k < 30; k++)
+
+    for(int k = 0; k < 5; k++)
     {
         for (int i = 0; i < LEARNING_DATA; i++)
         {
@@ -242,23 +307,70 @@ int main()
             
             Back_Propagation(input[i], target[i]);
 
+            Update_Weight(Wh2_out, Wh1_h2, Win_h1);
+
             Cal_Total_Error(i, target, output);
-            fprintf(fp, "%f\n", total_error[i]);
+            
+            fprintf(error_txt, "%f\n", total_error[i]);
             init_layer();
 
         }
     }
-
-    
+    printf("%f %f %f", target[LEARNING_DATA - 1][0] - output[LEARNING_DATA - 1][0], target[LEARNING_DATA - 1][1] - output[LEARNING_DATA - 1][1], target[LEARNING_DATA - 1][2] - output[LEARNING_DATA - 1][2]);
 
     // test case
-    init_layer();
-    float arr[1][3] = {{0.9, 0.1, 0.9}};
-    Forward_Propagation(0, arr[0]);
-    printf("\n");
-    for(int j = 0; j < 3; j++)
-        printf("%f ", output[0][j]);
+    double arr[MAX_TESTCASE][MAX_OUTPUT] = {{1.02, 1.05, 0.09},  // R, x 축에 가깝게
+                                   {1.08, 0.56, 1.60},  // Y
+                                   {0.96, 1.03, 3.11},  // B
+                                   {1.50, 1.05, 0.97},   // R, y 축에 가깝게
+                                   {1.46, 0.95, 2.46},  // Y
+                                   {0.93, 1.11, 3.97},  // B
+                                   {1.53, 1.56, 0.03},  // R, x,y 축은 구역 기준 중앙에 가깝게, z는 구역 기준 바닥에 가깝게 
+                                   {1.23, 0.74, 1.56},  // Y
+                                   {0.63, 1.49, 3.05},  // B
+                                   {1.57, 1.53, 0.98},  // R, x,y 축은 구역 기준 중앙에 가깝게, z는 구역 기준 위쪽에
+                                   {1.24, 0.77, 2.46},  // Y
+                                   {0.66, 1.44, 3.95},  // B
+                                   {1.58, 1.52, 0.55},  // R, x, y, z 축 모두 구역기준 중앙에 가깝게
+                                   {1.25, 0.76, 2.03},  // Y
+                                   {0.63, 1.47, 3.53},  // B
+                                   {1.41, 0.88, 0.32},  // R 구역에서 y 축으로 벗어난 곳
+                                   {1.62, 0.75, 1.82},  // Y 구역에서 x 축으로 벗어난 곳
+                                   {0.43, 1.79, 4.21},  // B 구역에서 z 축으로 벗어난 곳
+                                   {0.58, 1.63, 1.33},  // R 구역과 Y 구역 사이
+                                   {0.31, 0.22, 2.79},  // Y 구역과 B 구역 사이
+                                    };
 
+    for(int i = 0; i < MAX_TESTCASE; i++)
+    {
+        char result;
+        double _max = 0;
+        Forward_Propagation(i, arr[i]);
 
+        for(int j = 0; j < MAX_OUTPUT; j++)
+        {
+            _max = max(_max, output[i][j]);
+            fprintf(testcase_xyz, "%f ", arr[i][j]);
+            printf("%f ", output[i][j]);
+        }
+        if (_max == output[i][0])
+        {
+            result = 'R';
+            fprintf(testcase_xyz, "%f %f %f\n", 1.0, 0.0, 0.0);
+        }
+        else if (_max == output[i][1])
+        {
+            result = 'Y';
+            fprintf(testcase_xyz, "%f %f %f\n", 0.0, 1.0, 0.0);
+        }
+        else if (_max == output[i][2])
+        {
+            result = 'B';
+            fprintf(testcase_xyz, "%f %f %f\n", 0.0, 0.0, 1.0);
+        }
+        printf("%c\n", result);
+        fprintf(testcase_output, "%c\n", result);
+        init_layer();
+    }
     return 0;
 }
